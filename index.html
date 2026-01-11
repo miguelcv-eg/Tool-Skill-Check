@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+
+<title>Timing Skill Check</title>
+
+<!-- PWA -->
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#0d0d0d">
+
+<!-- Font -->
+<link href="https://fonts.googleapis.com/css2?family=Lexend:wght@400;700&display=swap" rel="stylesheet">
+
+<style>
+body {
+  margin: 0;
+  background: #0d0d0d;
+  color: white;
+  font-family: "Lexend", system-ui, sans-serif;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+h2 {
+  margin-top: 40px;
+}
+
+#bar {
+  position: relative;
+  width: 90%;
+  max-width: 900px;
+  height: 20px;
+  background: #333;
+  border-radius: 10px;
+  margin: 40px 0;
+  overflow: hidden;
+}
+
+#marker {
+  position: absolute;
+  top: -5px;
+  width: 4px;
+  height: 30px;
+  background: white;
+}
+
+#success-zone {
+  position: absolute;
+  top: 0;
+  height: 100%;
+  background: rgba(0, 150, 255, 0.35);
+  left: 50%;
+  transform: translateX(-50%);
+}
+
+#perfect-zone {
+  position: absolute;
+  top: 0;
+  height: 100%;
+  background: rgba(255, 0, 0, 0.6);
+  left: 50%;
+  transform: translateX(-50%);
+}
+
+#result {
+  margin: 20px 0;
+  font-size: 22px;
+  letter-spacing: 1px;
+}
+
+.success {
+  font-weight: bold;
+}
+
+.perfect {
+  font-weight: bold;
+  color: #00ff66;
+}
+
+.fail {
+  font-weight: normal;
+}
+
+.controls {
+  width: 90%;
+  max-width: 400px;
+  margin-top: 20px;
+}
+
+label {
+  display: flex;
+  justify-content: space-between;
+  font-size: 14px;
+  margin-top: 14px;
+}
+
+input[type="range"] {
+  width: 100%;
+}
+
+.toggle {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 14px;
+}
+</style>
+</head>
+
+<body>
+
+<h2>Timing Skill Check</h2>
+
+<div id="bar">
+  <div id="success-zone"></div>
+  <div id="perfect-zone"></div>
+  <div id="marker"></div>
+</div>
+
+<div id="result">TAP ANYWHERE</div>
+
+<div class="controls">
+  <label>
+    Speed
+    <span id="speedValue">6</span>
+  </label>
+  <input type="range" id="speed" min="2" max="12" value="6">
+
+  <label>
+    Timing Window
+    <span id="windowValue">25%</span>
+  </label>
+  <input type="range" id="window" min="1" max="50" value="25">
+
+  <label>
+    Perfect Size
+    <span id="perfectValue">5%</span>
+  </label>
+  <input type="range" id="perfectSize" min="0.1" max="10" step="0.1" value="5">
+
+  <div class="toggle">
+    <span>Perfect Enabled</span>
+    <input type="checkbox" id="perfectToggle" checked>
+  </div>
+</div>
+
+<audio id="hitSound" src="ULTRAKILL Parry Sound Effect.mp3" preload="auto"></audio>
+
+<script>
+const bar = document.getElementById("bar");
+const marker = document.getElementById("marker");
+const successZone = document.getElementById("success-zone");
+const perfectZone = document.getElementById("perfect-zone");
+const result = document.getElementById("result");
+
+const speedSlider = document.getElementById("speed");
+const windowSlider = document.getElementById("window");
+const perfectSizeSlider = document.getElementById("perfectSize");
+const perfectToggle = document.getElementById("perfectToggle");
+
+const speedValue = document.getElementById("speedValue");
+const windowValue = document.getElementById("windowValue");
+const perfectValue = document.getElementById("perfectValue");
+
+const sound = document.getElementById("hitSound");
+
+let pos = 0;
+let dir = 1;
+let running = true;
+
+function updateUI() {
+  speedValue.textContent = speedSlider.value;
+  windowValue.textContent = windowSlider.value + "%";
+  perfectValue.textContent = perfectSizeSlider.value + "%";
+
+  const windowSize = windowSlider.value;
+  const perfectRatio = perfectSizeSlider.value / 100;
+
+  successZone.style.width = windowSize + "%";
+
+  if (perfectToggle.checked) {
+    perfectZone.style.display = "block";
+    perfectZone.style.width = (windowSize * perfectRatio) + "%";
+  } else {
+    perfectZone.style.display = "none";
+  }
+}
+
+function playSound(volume) {
+  sound.currentTime = 0;
+  sound.volume = Math.min(volume, 1);
+  sound.play();
+}
+
+function vibrate(pattern) {
+  if (navigator.vibrate) navigator.vibrate(pattern);
+}
+
+function loop() {
+  if (running) {
+    pos += dir * speedSlider.value;
+    if (pos <= 0 || pos >= bar.clientWidth) dir *= -1;
+    marker.style.left = pos + "px";
+  }
+  requestAnimationFrame(loop);
+}
+
+document.body.addEventListener("click", (e) => {
+  if (e.target.closest(".controls")) return;
+  if (!running) return;
+
+  const barWidth = bar.clientWidth;
+  const markerCenter = marker.offsetLeft + marker.offsetWidth / 2;
+  const markerPercent = (markerCenter / barWidth) * 100;
+
+  const windowSize = Number(windowSlider.value);
+  const perfectRatio = Number(perfectSizeSlider.value) / 100;
+
+  const successStart = 50 - windowSize / 2;
+  const successEnd = 50 + windowSize / 2;
+
+  const perfectSize = windowSize * perfectRatio;
+  const perfectStart = 50 - perfectSize / 2;
+  const perfectEnd = 50 + perfectSize / 2;
+
+  running = false;
+
+  if (markerPercent >= successStart && markerPercent <= successEnd) {
+    if (perfectToggle.checked && markerPercent >= perfectStart && markerPercent <= perfectEnd) {
+      result.textContent = "PERFECT!";
+      result.className = "perfect";
+      playSound(1);
+      vibrate(90);
+    } else {
+      result.textContent = "SUCCESS!";
+      result.className = "success";
+      playSound(0.66);
+      vibrate(50);
+    }
+  } else {
+    result.textContent = "FAIL!";
+    result.className = "fail";
+    vibrate([30, 30, 30]);
+  }
+
+  setTimeout(() => {
+    result.textContent = "TAP ANYWHERE";
+    result.className = "";
+    running = true;
+  }, 2000);
+});
+
+speedSlider.oninput =
+windowSlider.oninput =
+perfectSizeSlider.oninput =
+perfectToggle.onchange = updateUI;
+
+updateUI();
+loop();
+</script>
+
+<script>
+if ("serviceWorker" in navigator) {
+  navigator.serviceWorker.register("sw.js");
+}
+</script>
+
+</body>
+</html>
