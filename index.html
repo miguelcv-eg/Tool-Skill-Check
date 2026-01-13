@@ -1,274 +1,243 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Timing Skill Check</title>
 
-<title>Timing Skill Check</title>
+  <!-- Lexend font (Google Fonts) -->
+  <link href="https://fonts.googleapis.com/css2?family=Lexend:wght@400;700&display=swap" rel="stylesheet">
 
-<!-- PWA -->
-<link rel="manifest" href="manifest.json">
-<meta name="theme-color" content="#0d0d0d">
+  <style>
+    body {
+      font-family: "Lexend", system-ui, sans-serif;
+      background: #111;
+      color: #eee;
+      text-align: center;
+      padding: 20px;
+    }
 
-<!-- Font -->
-<link href="https://fonts.googleapis.com/css2?family=Lexend:wght@400;700&display=swap" rel="stylesheet">
+    h1 {
+      margin-bottom: 10px;
+    }
 
-<style>
-body {
-  margin: 0;
-  background: #0d0d0d;
-  color: white;
-  font-family: "Lexend", system-ui, sans-serif;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  user-select: none;
-  -webkit-tap-highlight-color: transparent;
-}
+    .bar-container {
+      position: relative;
+      width: 90%;
+      max-width: 400px;
+      height: 20px;
+      background: #333;
+      margin: 30px auto;
+      border-radius: 10px;
+      overflow: hidden;
+    }
 
-h2 {
-  margin-top: 40px;
-}
+    .moving-line {
+      position: absolute;
+      top: 0;
+      width: 2px;
+      height: 100%;
+      background: white;
+    }
 
-#bar {
-  position: relative;
-  width: 90%;
-  max-width: 900px;
-  height: 20px;
-  background: #333;
-  border-radius: 10px;
-  margin: 40px 0;
-  overflow: hidden;
-}
+    .success-window {
+      position: absolute;
+      top: 0;
+      height: 100%;
+      background: rgba(0, 255, 0, 0.25);
+    }
 
-#marker {
-  position: absolute;
-  top: -5px;
-  width: 4px;
-  height: 30px;
-  background: white;
-}
+    .perfect-window {
+      position: absolute;
+      top: 0;
+      height: 100%;
+      background: rgba(255, 0, 0, 0.7);
+    }
 
-#success-zone {
-  position: absolute;
-  top: 0;
-  height: 100%;
-  background: rgba(0, 150, 255, 0.35);
-  left: 50%;
-  transform: translateX(-50%);
-}
+    .result {
+      margin-top: 15px;
+      font-size: 24px;
+      height: 30px;
+    }
 
-#perfect-zone {
-  position: absolute;
-  top: 0;
-  height: 100%;
-  background: rgba(255, 0, 0, 0.6);
-  left: 50%;
-  transform: translateX(-50%);
-}
+    .controls {
+      max-width: 400px;
+      margin: auto;
+      text-align: left;
+    }
 
-#result {
-  margin: 20px 0;
-  font-size: 22px;
-  letter-spacing: 1px;
-}
+    label {
+      display: block;
+      margin-top: 15px;
+    }
 
-.success {
-  font-weight: bold;
-}
+    input[type="range"] {
+      width: 100%;
+    }
 
-.perfect {
-  font-weight: bold;
-  color: #00ff66;
-}
-
-.fail {
-  font-weight: normal;
-}
-
-.controls {
-  width: 90%;
-  max-width: 400px;
-  margin-top: 20px;
-}
-
-label {
-  display: flex;
-  justify-content: space-between;
-  font-size: 14px;
-  margin-top: 14px;
-}
-
-input[type="range"] {
-  width: 100%;
-}
-
-.toggle {
-  display: flex;
-  justify-content: space-between;
-  margin-top: 14px;
-}
-</style>
+    button {
+      margin-top: 25px;
+      padding: 15px 25px;
+      font-size: 18px;
+      border-radius: 10px;
+      border: none;
+      background: #00aa88;
+      color: #fff;
+      font-family: "Lexend", sans-serif;
+    }
+  </style>
 </head>
-
 <body>
 
-<h2>Timing Skill Check</h2>
+  <h1>Timing Skill Check</h1>
 
-<div id="bar">
-  <div id="success-zone"></div>
-  <div id="perfect-zone"></div>
-  <div id="marker"></div>
-</div>
-
-<div id="result">TAP ANYWHERE</div>
-
-<div class="controls">
-  <label>
-    Speed
-    <span id="speedValue">6</span>
-  </label>
-  <input type="range" id="speed" min="2" max="12" value="6">
-
-  <label>
-    Timing Window
-    <span id="windowValue">25%</span>
-  </label>
-  <input type="range" id="window" min="1" max="50" value="25">
-
-  <label>
-    Perfect Size
-    <span id="perfectValue">5%</span>
-  </label>
-  <input type="range" id="perfectSize" min="0.1" max="10" step="0.1" value="5">
-
-  <div class="toggle">
-    <span>Perfect Enabled</span>
-    <input type="checkbox" id="perfectToggle" checked>
+  <div class="bar-container" id="bar">
+    <div class="success-window" id="successWindow"></div>
+    <div class="perfect-window" id="perfectWindow"></div>
+    <div class="moving-line" id="line"></div>
   </div>
-</div>
 
-<audio id="hitSound" src="ULTRAKILL Parry Sound Effect.mp3" preload="auto"></audio>
+  <div class="result" id="result"></div>
 
-<script>
-const bar = document.getElementById("bar");
-const marker = document.getElementById("marker");
-const successZone = document.getElementById("success-zone");
-const perfectZone = document.getElementById("perfect-zone");
-const result = document.getElementById("result");
+  <button id="clickBtn">CLICK</button>
 
-const speedSlider = document.getElementById("speed");
-const windowSlider = document.getElementById("window");
-const perfectSizeSlider = document.getElementById("perfectSize");
-const perfectToggle = document.getElementById("perfectToggle");
+  <div class="controls">
+    <label>
+      Speed: <span id="speedVal">2.0</span>x
+      <input type="range" id="speed" min="0.5" max="5" step="0.1" value="2">
+    </label>
 
-const speedValue = document.getElementById("speedValue");
-const windowValue = document.getElementById("windowValue");
-const perfectValue = document.getElementById("perfectValue");
+    <label>
+      Timing Window (%): <span id="windowVal">20</span>%
+      <input type="range" id="window" min="1" max="50" step="1" value="20">
+    </label>
 
-const sound = document.getElementById("hitSound");
+    <label>
+      Perfect Window (% of timing window):
+      <span id="perfectVal">5</span>%
+      <input type="range" id="perfect" min="0.1" max="10" step="0.1" value="5">
+    </label>
+  </div>
 
-let pos = 0;
-let dir = 1;
-let running = true;
+  <script>
+    const bar = document.getElementById("bar");
+    const line = document.getElementById("line");
+    const successWindow = document.getElementById("successWindow");
+    const perfectWindow = document.getElementById("perfectWindow");
+    const result = document.getElementById("result");
 
-function updateUI() {
-  speedValue.textContent = speedSlider.value;
-  windowValue.textContent = windowSlider.value + "%";
-  perfectValue.textContent = perfectSizeSlider.value + "%";
+    const speedInput = document.getElementById("speed");
+    const windowInput = document.getElementById("window");
+    const perfectInput = document.getElementById("perfect");
 
-  const windowSize = windowSlider.value;
-  const perfectRatio = perfectSizeSlider.value / 100;
+    const speedVal = document.getElementById("speedVal");
+    const windowVal = document.getElementById("windowVal");
+    const perfectVal = document.getElementById("perfectVal");
 
-  successZone.style.width = windowSize + "%";
+    const clickBtn = document.getElementById("clickBtn");
 
-  if (perfectToggle.checked) {
-    perfectZone.style.display = "block";
-    perfectZone.style.width = (windowSize * perfectRatio) + "%";
-  } else {
-    perfectZone.style.display = "none";
-  }
-}
+    // PERFECT sound ONLY
+    const perfectSound = new Audio("Black Flash.mp3");
+    perfectSound.volume = 2.0;
 
-function playSound(volume) {
-  sound.currentTime = 0;
-  sound.volume = Math.min(volume, 1);
-  sound.play();
-}
+    let pos = 0;
+    let dir = 1;
+    let lastTime = null;
 
-function vibrate(pattern) {
-  if (navigator.vibrate) navigator.vibrate(pattern);
-}
+    function updateWindows() {
+      const barWidth = bar.clientWidth;
 
-function loop() {
-  if (running) {
-    pos += dir * speedSlider.value;
-    if (pos <= 0 || pos >= bar.clientWidth) dir *= -1;
-    marker.style.left = pos + "px";
-  }
-  requestAnimationFrame(loop);
-}
+      const timingPercent = parseFloat(windowInput.value);
+      const perfectPercent = parseFloat(perfectInput.value);
 
-document.body.addEventListener("click", (e) => {
-  if (e.target.closest(".controls")) return;
-  if (!running) return;
+      const successWidth = barWidth * (timingPercent / 100);
+      const successLeft = (barWidth - successWidth) / 2;
 
-  const barWidth = bar.clientWidth;
-  const markerCenter = marker.offsetLeft + marker.offsetWidth / 2;
-  const markerPercent = (markerCenter / barWidth) * 100;
+      const perfectWidth = successWidth * (perfectPercent / 100);
+      const perfectLeft = (barWidth - perfectWidth) / 2;
 
-  const windowSize = Number(windowSlider.value);
-  const perfectRatio = Number(perfectSizeSlider.value) / 100;
+      successWindow.style.width = successWidth + "px";
+      successWindow.style.left = successLeft + "px";
 
-  const successStart = 50 - windowSize / 2;
-  const successEnd = 50 + windowSize / 2;
-
-  const perfectSize = windowSize * perfectRatio;
-  const perfectStart = 50 - perfectSize / 2;
-  const perfectEnd = 50 + perfectSize / 2;
-
-  running = false;
-
-  if (markerPercent >= successStart && markerPercent <= successEnd) {
-    if (perfectToggle.checked && markerPercent >= perfectStart && markerPercent <= perfectEnd) {
-      result.textContent = "PERFECT!";
-      result.className = "perfect";
-      playSound(1);
-      vibrate(90);
-    } else {
-      result.textContent = "SUCCESS!";
-      result.className = "success";
-      playSound(0.66);
-      vibrate(50);
+      perfectWindow.style.width = perfectWidth + "px";
+      perfectWindow.style.left = perfectLeft + "px";
     }
-  } else {
-    result.textContent = "FAIL!";
-    result.className = "fail";
-    vibrate([30, 30, 30]);
-  }
 
-  setTimeout(() => {
-    result.textContent = "TAP ANYWHERE";
-    result.className = "";
-    running = true;
-  }, 1000);
-});
+    function animate(time) {
+      if (!lastTime) lastTime = time;
+      const delta = time - lastTime;
+      lastTime = time;
 
-speedSlider.oninput =
-windowSlider.oninput =
-perfectSizeSlider.oninput =
-perfectToggle.onchange = updateUI;
+      const speed = parseFloat(speedInput.value);
+      const barWidth = bar.clientWidth;
 
-updateUI();
-loop();
-</script>
+      pos += dir * delta * 0.2 * speed;
 
-<script>
-if ("serviceWorker" in navigator) {
-  navigator.serviceWorker.register("sw.js");
-}
-</script>
+      if (pos <= 0) {
+        pos = 0;
+        dir = 1;
+      }
+      if (pos >= barWidth) {
+        pos = barWidth;
+        dir = -1;
+      }
+
+      line.style.left = pos + "px";
+      requestAnimationFrame(animate);
+    }
+
+    clickBtn.addEventListener("click", () => {
+      const barWidth = bar.clientWidth;
+
+      const timingPercent = parseFloat(windowInput.value);
+      const perfectPercent = parseFloat(perfectInput.value);
+
+      const successWidth = barWidth * (timingPercent / 100);
+      const successLeft = (barWidth - successWidth) / 2;
+
+      const perfectWidth = successWidth * (perfectPercent / 100);
+      const perfectLeft = (barWidth - perfectWidth) / 2;
+
+      result.textContent = "";
+      result.style.fontWeight = "normal";
+      result.style.color = "#eee";
+
+      if (pos >= perfectLeft && pos <= perfectLeft + perfectWidth) {
+        result.textContent = "PERFECT!";
+        result.style.color = "lime";
+        result.style.fontWeight = "bold";
+
+        perfectSound.pause();
+        perfectSound.currentTime = 0;
+        perfectSound.play();
+
+      } else if (pos >= successLeft && pos <= successLeft + successWidth) {
+        result.textContent = "SUCCESS";
+        result.style.fontWeight = "bold";
+      } else {
+        result.textContent = "FAIL";
+      }
+
+      setTimeout(() => {
+        result.textContent = "";
+      }, 1000);
+    });
+
+    function updateLabels() {
+      speedVal.textContent = speedInput.value;
+      windowVal.textContent = windowInput.value;
+      perfectVal.textContent = perfectInput.value;
+      updateWindows();
+    }
+
+    speedInput.addEventListener("input", updateLabels);
+    windowInput.addEventListener("input", updateLabels);
+    perfectInput.addEventListener("input", updateLabels);
+
+    updateLabels();
+    updateWindows();
+    requestAnimationFrame(animate);
+  </script>
 
 </body>
 </html>
-
