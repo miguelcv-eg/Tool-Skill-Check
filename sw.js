@@ -1,4 +1,4 @@
-const CACHE_NAME = "skill-check-v2";
+const CACHE_NAME = "skill-check-v3";
 
 const FILES_TO_CACHE = [
   "./",
@@ -20,4 +20,5 @@ self.addEventListener("fetch", (event) => {
     })
   );
 });
+
 
